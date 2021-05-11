@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.spring.main.dao.AdminDAO">
+	<resultMap type="LibraryInfoDTO" id="notice">
+			<id column="noticeidx" property="noticeidx"/>
+			<result column="id" property="id"/>
+			<result column="subject" property="subject"/>
+			<result column="content " property="content"/>
+			<result column="reg_date" property="reg_date"/>
+			<result column="noticestatus" property="noticestatus"/>
+	</resultMap>
+
+	<!-- 관리자 알림내역 -->
+	<select id="adminNoti" resultType="com.spring.main.dto.AdminDTO" parameterType="list">
+		SELECT * FROM notification WHERE mem_type = '관리자' AND readstatus='FALSE'
+	</select>
+
+	<!-- 리뷰 추천 수 많은 유저 -->
+	<select id="manyUp" resultType="com.spring.main.dto.AdminDTO" parameterType="list">
+		<![CDATA[
+			SELECT * FROM (
+			    SELECT ROW_NUMBER() OVER(ORDER BY COUNT(r.id) DESC) AS rnum, r.id, COUNT(r.id) "cnt" FROM ReviewRecommend c JOIN review r 
+			    ON c.reviewIdx = r.reviewIdx AND TO_CHAR(c.recom_date,'YYYYMM') = TO_CHAR(add_months(sysdate,-1), 'YYYYMM') GROUP BY r.id
+			) WHERE rnum <= 3
+		]]>
+	</select>
+	
+	<!-- 리뷰 많이 작성한 유저 -->
+	<select id="manyReview" resultType="com.spring.main.dto.AdminDTO" parameterType="list">
+		<![CDATA[
+			SELECT * FROM (
+			    SELECT ROW_NUMBER() OVER(ORDER BY COUNT(id) DESC) AS rnum,
+			        id, COUNT(id) AS "cnt" FROM review WHERE TO_CHAR(reg_date,'YYYYMM') = TO_CHAR(add_months(sysdate,-1), 'YYYYMM')
+			        GROUP BY id
+			) WHERE rnum <= 3
+		]]>
+	</select>
+	
+	<insert id="selectKing" parameterType="list">
+		INSERT INTO bestreview(id, month_rcnt) VALUES(#{param1}, #{param2})
+	</insert>
+	
+	<select id="hideBtn" resultType="com.spring.main.dto.AdminDTO" parameterType="list">
+		SELECT id FROM bestreview WHERE TO_CHAR(reg_date,'YYYYMM') = TO_CHAR(SYSDATE, 'YYYYMM')
+	</select>
+	
+	<select id="ReportList" resultType="com.spring.main.dto.AdminDTO" parameterType="list">
+		SELECT * FROM (
+		    SELECT ROW_NUMBER() OVER(ORDER BY reportIdx DESC) AS rnum, reportIdx, reviewIdx, reportId, reportReason, reportdate 
+		    FROM reviewreport WHERE reportStatus='FALSE' 
+		)WHERE  rnum BETWEEN #{param1} AND #{param2}
+	</select>
+	
+	<select id="BlindList" resultType="com.spring.main.dto.AdminDTO" parameterType="list">
+		SELECT blindIdx, reportIdx, reportreason, blindreason, blind_date, rnum
+   			 FROM(
+        		SELECT ROW_NUMBER() OVER(ORDER BY b.blindIdx DESC) AS rnum,
+            		b.blindIdx, r.reportIdx, r.reportreason, b.blindreason, b.blind_date
+        		FROM reviewblind b JOIN reviewreport r ON b.reportidx = r.reportidx AND b.blind_status = 'TRUE'
+        	) WHERE  rnum BETWEEN #{param1} AND #{param2}
+	</select>
+	
+	<select id="allCount" resultType="Integer">
+		SELECT COUNT(blindIdx) FROM reviewblind
+	</select>
+	
+	<select id="reportDetail" resultType="com.spring.main.dto.AdminDTO">
+		SELECT rr.reportidx, r.reg_date, r.id, r.content, rr.reportdate, rr.reportid, rr.reportreason FROM reviewreport rr JOIN review r 
+    		ON rr.reportIdx = #{param1} AND rr.reviewidx = r.reviewidx
+	</select>
+	
+	<select id="blindReason" resultType="com.spring.main.dto.AdminDTO">
+		SELECT * FROM reviewreport WHERE reportIdx=#{param1} AND reviewIdx=#{param2}
+	</select>
+	
+	<insert id="blindReasonTxt" parameterType="HashMap">
+		INSERT INTO reviewblind(blindIdx, reportIdx, reviewIdx, blindReason) 
+			VALUES(BLIND_SEQ.NEXTVAL, #{reportIdx}, #{reviewIdx}, #{WhyBlind})
+	</insert>
+	
+	<update id="reportFal" parameterType="HashMap">
+		UPDATE reviewreport SET reportStatus='TRUE' WHERE reportIdx=#{reportIdx}
+	</update>
+	
+	<delete id="ignore">
+		DELETE FROM reviewreport WHERE reportIdx=#{param1}
+	</delete>
+	
+	<delete id="blindRemove">
+		UPDATE reviewblind SET blind_status='FALSE' WHERE blindIdx=#{param1}
+	</delete>
+	
+	<!-- 관리자 공지사항 리스트 -->
+	<select id="adminNotice" resultType="com.spring.main.dto.LibraryInfoDTO" parameterType="list">
+		SELECT * FROM (
+		    SELECT ROW_NUMBER() OVER(ORDER BY noticeidx DESC) AS rnum, noticeidx, id, subject, content, reg_date, noticestatus 
+		    FROM notice
+		)WHERE  rnum BETWEEN #{param1} AND #{param2}
+	</select>
+	
+	<insert id="noticeWrite" parameterType="HashMap">
+		INSERT INTO notice(noticeidx, id, subject, content, noticestatus) 
+			VALUES(NOTICEIDX_SEQ.NEXTVAL, #{id}, #{subject}, #{content}, #{popup})
+	</insert>
+	
+	<select id="noticeDetail" resultType="com.spring.main.dto.LibraryInfoDTO">
+		SELECT * FROM notice WHERE noticeidx=#{param1}
+	</select>
+	
+	<delete id="noticeDel">
+		DELETE FROM notice WHERE noticeidx=#{param1}
+	</delete>
+	
+	<update id="noticeUpdate" parameterType="HashMap">
+		UPDATE notice SET subject=#{subject}, content=#{content}, noticestatus=#{popup} 
+			WHERE noticeidx=#{idx}
+	</update>
+	
+	<select id="questionCnt" resultType="int">
+		SELECT COUNT(*) FROM question
+	</select>
+	
+	<select id="questionList" resultType="question">
+		SELECT queIdx, id, subject, content, reg_date, showStatus, ansStatus, type, rnum
+		FROM ( 
+		    SELECT queIdx, id, subject, content, reg_date, showStatus, ansStatus, type,
+		        ROW_NUMBER() OVER(ORDER BY DECODE(ansStatus,'FALSE',1,'TRUE',2), reg_date DESC) AS rnum FROM question
+		    )
+		WHERE rnum BETWEEN #{param1} AND #{param2}
+		
+	</select>
+	
+	<select id="questionDetail" resultType="question">
+	SELECT QUEIDX,ID,SUBJECT,CONTENT,to_char(REG_DATE ,'YYYY-MM-DD'),SHOWSTATUS,ANSSTATUS,TYPE FROM QUESTION WHERE QUEIDX = #{param1}
+	</select>
+	
+	<select id="questionAnsstatus" resultType="string">
+	SELECT a.CONTENT FROM QUESTION q ,ANSWER a WHERE q.QUEIDX = a.QUEIDX(+) AND q.QUEIDX = #{param1}
+	</select>
+	
+	<insert id="questionAnswer" parameterType="hashMap">
+		INSERT INTO answer(ansidx,queidx,content)
+		VALUES(ansidx_seq.NEXTVAL,#{queIdx},#{answerContent})
+	</insert>
+	
+	<update id="questionAnswerStatus" parameterType="hashMap">
+		UPDATE question SET ansstatus = 'TRUE'
+		WHERE queidx = #{queIdx}
+	</update>
+	
+</mapper>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.spring.main.dao.LibrarySearchDAO">
+	<select id="reserveChk" resultType="int">
+		SELECT COUNT(bookidx) FROM reservebook WHERE bookidx = #{param1} AND bookstate = 'R001'
+	</select>
+	
+	<select id="reserveChkId" resultType="int">
+		SELECT COUNT(bookidx) FROM reservebook WHERE bookidx = #{param1} AND id = #{param2} AND bookstate = 'R001'
+	</select>
+
+	<insert id="reserveBook">
+		INSERT INTO reserveBook(reserveBookIdx,bookIdx,id)
+			VALUES(reserveBookIdx_seq.NEXTVAL,#{bookIdx},#{id})
+	</insert>
+	
+	<delete id="reserveBookCancel">
+		DELETE FROM reserveBook WHERE reserveBookIdx = #{param1}
+	</delete>
+	
+	<select id="maximumRentalChk" resultType="int">
+		SELECT COUNT(*) FROM bestreview WHERE id=#{param1}
+		AND reg_date BETWEEN TRUNC(SYSDATE+1)-TO_CHAR(SYSDATE,'DD')
+    	AND TRUNC(LAST_DAY(SYSDATE))+0.99999421
+	</select>
+	
+	<select id="RentalChk" resultType="int">
+		SELECT COUNT(*) FROM reservebook WHERE id = #{param1} AND bookstate = 'R002'
+	</select>
+	
+	<update id="rentalBook">
+		UPDATE ReserveBook SET bookState = 'R002' WHERE reserveBookIdx = #{param1}
+	</update>
+	
+	
+	
+	<update id="notificationRead">
+		UPDATE notification SET readstatus = 'TRUE' WHERE noticeidx = #{param1}
+	</update>
+	
+	<update id="returnBook">
+		UPDATE ReserveBook SET bookState = 'R003' WHERE reserveBookIdx = #{param1}
+	</update>
+	
+	<select id="searchResult" parameterType="hashMap" resultType="book">
+		
+		SELECT * FROM book
+		<where>
+	 	<if test="search == '도서명'">
+	 		bookname LIKE '%'||#{searchContent}||'%' AND bookstate NOT IN ('B005', 'B006', 'B007')
+	 	</if>
+	 	<if test="search == '저자명'">
+	 		writer LIKE '%'||#{search}||'%' AND bookstate NOT IN ('B005', 'B006', 'B007')
+	 	</if>
+	 	</where>
+		
+	</select>
+	
+	<select id="searchResultDetail" resultType="book">
+		SELECT * FROM book WHERE bookidx = #{bookIdx}
+	</select>
+	
+</mapper>

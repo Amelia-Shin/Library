@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.spring.main.dao.LibraryInfoDAO">
+
+	<select id="noticePopup" resultType="com.spring.main.dto.LibraryInfoDTO">
+		SELECT * FROM notice WHERE noticestatus = 'true'
+	</select>
+
+	<select id="list" resultType="com.spring.main.dto.LibraryInfoDTO">
+		SELECT  NOTICEIDX ,ID ,SUBJECT ,CONTENT ,REG_DATE ,NOTICESTATUS ,rnum
+		FROM(
+				SELECT NOTICEIDX ,ID ,SUBJECT ,CONTENT ,REG_DATE ,NOTICESTATUS,
+				ROW_NUMBER() OVER(ORDER BY NOTICEIDX DESC) AS rnum FROM notice		
+			)
+		WHERE rnum BETWEEN #{param1} AND #{param2}
+	</select>
+	
+	<select id="allCount" resultType="int">
+		SELECT COUNT(NOTICEIDX) FROM notice
+	</select>
+	
+	
+<select id="noticeDetail" resultType="com.spring.main.dto.LibraryInfoDTO">
+		SELECT NOTICEIDX ,ID ,SUBJECT ,CONTENT ,REG_DATE ,NOTICESTATUS FROM notice WHERE NOTICEIDX = #{param1}
+	</select>
+	
+	
+<select id="searchList" parameterType="hashmap"  resultType="com.spring.main.dto.LibraryInfoDTO">
+	SELECT  NOTICEIDX ,ID ,SUBJECT ,CONTENT ,REG_DATE ,NOTICESTATUS ,rnum
+		FROM(
+				SELECT NOTICEIDX ,ID ,SUBJECT ,CONTENT ,REG_DATE ,NOTICESTATUS,
+				ROW_NUMBER() OVER(ORDER BY NOTICEIDX DESC) AS rnum FROM (
+				
+				SELECT NOTICEIDX ,ID ,SUBJECT ,CONTENT ,REG_DATE ,NOTICESTATUS FROM notice
+		<where>
+			<if test="searchSelect.equals('전체')">
+			 content LIKE '%'||#{search}||'%' OR subject LIKE '%'||#{search}||'%'))
+			</if>
+			<if test="searchSelect.equals('제목')">
+			subject LIKE '%'||#{search}||'%'))
+			</if>
+			<if test="searchSelect.equals('내용')">
+			content LIKE '%'||#{search}||'%'))
+			</if>
+		</where>	
+		WHERE rnum BETWEEN #{start} AND #{end}
+	</select>
+	
+ 	<select id="searchCount" parameterType="hashmap" resultType="int">
+ 	
+		SELECT COUNT(NOTICEIDX) FROM (SELECT NOTICEIDX ,ID ,SUBJECT ,CONTENT ,REG_DATE ,NOTICESTATUS FROM notice
+		<where>
+			<if test="searchSelect.equals('전체')">
+			 content LIKE '%'||#{search}||'%' OR subject LIKE '%'||#{search}||'%')
+			</if>
+			<if test="searchSelect.equals('제목')">
+			subject LIKE '%'||#{search}||'%')
+			</if>
+			<if test="searchSelect.equals('내용')">
+			content LIKE '%'||#{search}||'%')
+			</if>
+		</where>
+	</select>
+	
+	<select id="faq_infoNotice" resultType="com.spring.main.dto.LibraryInfoDTO">
+		SELECT * FROM FAQ ORDER BY FAQIDX ASC
+	</select>
+	
+	
+	<select id="faqSearch_infoNotice" parameterType="hashmap" resultType="com.spring.main.dto.LibraryInfoDTO">
+		SELECT * FROM faq
+		<where>
+			<if test="searchSelect.equals('전체')">
+			 content LIKE '%'||#{search}||'%' OR anwser LIKE '%'||#{search}||'%'
+			</if>
+			<if test="searchSelect.equals('제목')">
+			anwser LIKE '%'||#{search}||'%'
+			</if>
+		<!-- 	<if test="searchSelect.equals('답변')">
+			content LIKE '%'||#{search}||'%'
+			</if> -->
+		</where>
+		ORDER BY FAQIDX ASC
+	</select>
+	
+	
+	<select id="questionAll_List"  parameterType="int" resultType="com.spring.main.dto.LibraryInfoDTO">
+		SELECT  QUEIDX,ID,SUBJECT,CONTENT,REG_DATE,SHOWSTATUS,ANSSTATUS, TYPE ,rnum
+		FROM(
+				SELECT QUEIDX,ID,SUBJECT,CONTENT,REG_DATE,SHOWSTATUS,ANSSTATUS,TYPE,
+				ROW_NUMBER() OVER(ORDER BY QUEIDX DESC) AS rnum FROM (
+				SELECT QUEIDX,ID,SUBJECT,CONTENT,REG_DATE,SHOWSTATUS,ANSSTATUS,TYPE FROM QUESTION		
+		)	
+			) WHERE rnum BETWEEN #{param1} AND #{param2}
+		
+	</select>
+	<select id="questionAll_Count" resultType="int">
+	SELECT COUNT(QUEIDX) FROM (SELECT * FROM QUESTION)
+	</select>
+	
+	<select id="questionList"  parameterType="int" resultType="com.spring.main.dto.LibraryInfoDTO">
+		SELECT  QUEIDX,ID,SUBJECT,CONTENT,REG_DATE,SHOWSTATUS,ANSSTATUS, TYPE ,rnum
+		FROM(
+				SELECT QUEIDX,ID,SUBJECT,CONTENT,REG_DATE,SHOWSTATUS,ANSSTATUS,TYPE,
+				ROW_NUMBER() OVER(ORDER BY QUEIDX DESC) AS rnum FROM (
+				SELECT QUEIDX,ID,SUBJECT,CONTENT,REG_DATE,SHOWSTATUS,ANSSTATUS,TYPE FROM QUESTION
+				<where>
+				<if test="param3==1">
+				TYPE ='Q001'
+				</if>
+				<if test="param3==2">
+				TYPE ='Q002'
+				</if>
+				<if test="param3==3">
+				TYPE ='Q003'
+				</if>
+				<if test="param3==4">
+				TYPE ='Q004'
+				</if>
+				</where>	
+		)	
+			) WHERE rnum BETWEEN #{param1} AND #{param2}
+	</select>
+	
+	<select id="question_roomCount"  resultType="int">
+	SELECT COUNT(QUEIDX) FROM (SELECT * FROM QUESTION WHERE TYPE = 'Q001')
+	</select>
+	<select id="question_bookCount"  resultType="int">
+	SELECT COUNT(QUEIDX) FROM (SELECT * FROM QUESTION WHERE TYPE = 'Q002')
+	</select>
+	<select id="question_serviceCount"  resultType="int">
+	SELECT COUNT(QUEIDX) FROM (SELECT * FROM QUESTION WHERE TYPE = 'Q003')
+	</select>
+	<select id="question_guitarCount"  resultType="int">
+	SELECT COUNT(QUEIDX) FROM (SELECT * FROM QUESTION WHERE TYPE = 'Q004')
+	</select>
+	
+	<insert id="questionWriting" 
+	useGeneratedKeys="true"
+	keyProperty="queidx"
+	keyColumn="queidx"
+	parameterType="com.spring.main.dto.LibraryInfoDTO">
+	<!-- loginId=, type=Q003, subject=가입인사드립니다/., content=sdfsafsdaf, false=FALSE -->
+	INSERT INTO QUESTION (QUEIDX,ID,SUBJECT,CONTENT,REG_DATE,SHOWSTATUS,ANSSTATUS,TYPE) VALUES 
+	<choose>
+		<when test="false.equals('FALSE')">
+		(QUEIDX_seq.NEXTVAL,#{id},#{subject},#{content},SYSDATE,#{showstatus},'FALSE',#{type})
+		</when>
+		<otherwise>
+		(QUEIDX_seq.NEXTVAL,#{id},#{subject},#{content},SYSDATE,#{showstatus},'FALSE',#{type})
+		</otherwise>
+	</choose>
+	</insert>
+	<insert id="fileWriting">
+	INSERT INTO QUESTIONPHOTO (QUEPHOTOIDX,NEWFILENAME,ORIFILENAME,QUEIDX) VALUES 
+	(QUEPHOTOIDX_SEQ.NEXTVAL,#{param1},#{param2},#{param3})
+	</insert>
+	
+	
+	
+	<select id="questionDetail" resultType="hashmap">
+	SELECT QUEIDX,ID,SUBJECT,CONTENT,to_char(REG_DATE ,'YYYY-MM-DD'),SHOWSTATUS,ANSSTATUS,TYPE FROM QUESTION WHERE QUEIDX = #{idx}
+	</select>
+	
+	<select id="questionAnsstatus" resultType="string">
+	SELECT a.CONTENT FROM QUESTION q ,ANSWER a WHERE q.QUEIDX = a.QUEIDX(+) AND q.QUEIDX = #{param1}
+	</select>
+	
+	<select id="photoRead" resultType="String">
+		SELECT NEWFILENAME FROM QUESTIONPHOTO WHERE QUEIDX = #{param1}
+	</select>
+	
+	<delete id="initLostFile" parameterType="string">
+		DELETE FROM QUESTIONPHOTO WHERE NEWFILENAME =#{param1}
+	</delete>
+	
+	<update id="update" parameterType="hashmap">
+	<!--{queidx=223, subject=제목수정해주세욥, type=Q001, 
+	content=세션체크중<br><a href="#" id="/photo/1620017868957.png"><img src="/photo/1620017868957.png" width="80"></a><br><a href="#" id="/photo/1620017876125.jpg"><img src="/photo/1620017876125.jpg" width="80"></a>, 
+	false=TRUE}  -->
+	
+	UPDATE QUESTION SET SUBJECT =#{subject} ,TYPE=#{type},CONTENT=#{content},SHOWSTATUS=#{false} WHERE QUEIDX =#{queidx}
+	</update>
+	
+	<select id="mainNoticeCall" resultType="com.spring.main.dto.LibraryInfoDTO">
+	 SELECT * FROM (SELECT RANK() OVER(ORDER BY to_char(REG_DATE ,'YYYYMMDDHH24MISS')DESC) AS DR,NOTICEIDX ,SUBJECT ,CONTENT ,to_char(REG_DATE ,'YYYY-MM-DD') AS reg_date  FROM NOTICE)tb1 WHERE <![CDATA[ tb1.DR <= 4 AND tb1.DR >=1 ]]>
+	</select>
+	
+	<select id="fileCk"  resultType="String">
+		SELECT NEWFILENAME FROM QUESTIONPHOTO WHERE QUEIDX = #{param1}
+	</select>
+	
+	<delete id="questionDelete" parameterType="int">
+		DELETE FROM QUESTION WHERE QUEIDX =#{param1}
+	</delete>
+</mapper>
